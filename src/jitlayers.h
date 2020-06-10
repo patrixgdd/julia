@@ -113,33 +113,7 @@ void jl_compile_workqueue(
 Function *jl_cfunction_object(jl_function_t *f, jl_value_t *rt, jl_tupletype_t *argt,
     jl_codegen_params_t &params);
 
-static inline GlobalVariable *prepare_global_in(Module *M, GlobalVariable *G)
-{
-    if (G->getParent() == M)
-        return G;
-    GlobalValue *local = M->getNamedValue(G->getName());
-    if (!local) {
-        // Copy the GlobalVariable, but without the initializer, so it becomes a declaration
-        GlobalVariable *proto = new GlobalVariable(*M, G->getType()->getElementType(),
-                G->isConstant(), GlobalVariable::ExternalLinkage,
-                nullptr, G->getName(), nullptr, G->getThreadLocalMode());
-        proto->copyAttributesFrom(G);
-        // DLLImport only needs to be set for the shadow module
-        // it just gets annoying in the JIT
-        proto->setDLLStorageClass(GlobalValue::DefaultStorageClass);
-        return proto;
-    }
-    return cast<GlobalVariable>(local);
-}
-
-void add_named_global(GlobalObject *gv, void *addr, bool dllimport);
-template<typename T>
-static inline void add_named_global(GlobalObject *gv, T *addr, bool dllimport = true)
-{
-    // cast through integer to avoid c++ pedantic warning about casting between
-    // data and code pointers
-    add_named_global(gv, (void*)(uintptr_t)addr, dllimport);
-}
+void add_named_global(StringRef name, void *addr);
 
 static inline Constant *literal_static_pointer_val(const void *p, Type *T)
 {
@@ -212,7 +186,6 @@ public:
                          const object::ObjectFile &Obj,
                          const RuntimeDyld::LoadedObjectInfo &LoadedObjectInfo);
     void addGlobalMapping(StringRef Name, uint64_t Addr);
-    void addGlobalMapping(const GlobalValue *GV, void *Addr);
     void *getPointerToGlobalIfAvailable(StringRef S);
     void *getPointerToGlobalIfAvailable(const GlobalValue *GV);
     void addModule(std::unique_ptr<Module> M);
