@@ -693,7 +693,7 @@ function _simplify_include_frames(trace)
             # Hack: allow `mod==nothing` as a workaround for inlined functions.
             # TODO: Fix this by improving debug info.
             if mod in (Base,Core,nothing) && 1+first_ignored-i <= 5
-                if frame.func == :eval
+                if frame.func === :eval
                     kept_frames[i:first_ignored] .= false
                     first_ignored = nothing
                 end
@@ -714,7 +714,7 @@ function process_backtrace(t::Vector, limit::Int=typemax(Int); skipC = true)
     n = 0
     last_frame = StackTraces.UNKNOWN
     count = 0
-    ret = Any[]
+    ret = Tuple{StackTraces.StackFrame,Int}[]
     for i in eachindex(t)
         lkups = t[i]
         if lkups isa StackFrame
